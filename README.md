@@ -7,7 +7,7 @@ A browser-based 3D Gaussian Splatting viewer built with [SparkJS](https://sparkj
 - Load any local `.ply` file (3DGS format) directly in the browser
 - Orbit / pan / zoom the scene with mouse
 - Optional animated character (blocky humans + animals) with WASD walking
-- Rapier3D physics — gravity and ground collision
+- Rapier3D physics — gravity with a flat ground plane (manually adjustable height)
 - Auto-centers the loaded scene on load
 
 ## Usage
