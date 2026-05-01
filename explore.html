@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3DGS Explorer</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; color: #fff; overflow: hidden; }
+    canvas { display: block; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; }
+
+    #controls {
+      position: fixed; top: 16px; left: 16px; z-index: 100;
+      background: rgba(0,0,0,0.75); padding: 16px; border-radius: 12px;
+      backdrop-filter: blur(8px); max-width: 320px; font-size: 13px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    #controls h2 { font-size: 14px; margin: 0 0 10px 0; color: #7ec8e3; }
+    .btn {
+      display: block; width: 100%; padding: 8px 12px; margin: 4px 0;
+      background: #16213e; border: 1px solid #0f3460; border-radius: 6px;
+      color: #eee; font-size: 12px; cursor: pointer; text-align: left;
+    }
+    .btn:hover { background: #0f3460; }
+    .btn.active { background: #533483; border-color: #7ec8e3; }
+    .section { margin-top: 10px; padding-top: 8px; border-top: 1px solid #333; }
+    .section-title { font-size: 11px; color: #888; margin-bottom: 6px; }
+    .slider-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+    .slider-row label { flex: 0 0 60px; font-size: 11px; color: #aaa; }
+    .slider-row input[type=range] { flex: 1; }
+    .slider-row .val { flex: 0 0 40px; font-size: 11px; color: #7ec8e3; text-align: right; }
+    select {
+      width: 100%; padding: 6px 8px; margin: 4px 0;
+      background: #16213e; border: 1px solid #0f3460; border-radius: 6px;
+      color: #eee; font-size: 12px; cursor: pointer;
+    }
+    #hud {
+      position: fixed; bottom: 16px; left: 16px; z-index: 100;
+      background: rgba(0,0,0,0.6); padding: 10px 14px; border-radius: 8px;
+      font-size: 12px; color: #aaa; line-height: 1.6;
+    }
+    #loading {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 200; font-size: 18px; color: #7ec8e3;
+    }
+    .hidden { display: none; }
+    .btn-ground { background: #1a4a1a; border-color: #2d8a2d; margin-top: 4px; }
+    .btn-ground:hover { background: #2d8a2d; }
+  </style>
+</head>
+<body>
+
+<div id="controls">
+  <h2>3DGS Explorer</h2>
+  <button class="btn" onclick="loadScene('scene_2323/20260420_015258/gaussians.ply', this)">scene_2323 - HY-World</button>
+  <button class="btn" onclick="loadScene('resplat_scene_2323.ply', this)">scene_2323 - ReSplat (GCP)</button>
+  <button class="btn" onclick="loadScene('resplat_scene_2323_local.ply', this)">scene_2323 - ReSplat (local)</button>
+  <button class="btn" onclick="loadScene('resplat_scene_2330.ply', this)">scene_2330 - ReSplat (local)</button>
+  <button class="btn" onclick="loadScene('IMG_2336/20260420_015129/gaussians.ply', this)">IMG_2336 - HY-World</button>
+  <button class="btn" onclick="loadScene('IMG_2322/20260420_034507/gaussians.ply', this)">IMG_2322 - HY-World</button>
+  <button class="btn" onclick="loadScene('IMG_2359/20260420_234136/gaussians.ply', this)">IMG_2359 - HY-World</button>
+  <button class="btn" onclick="loadScene('resplat_IMG_2359.ply', this)">IMG_2359 - ReSplat (MapAny)</button>
+  <button class="btn" onclick="loadScene('colmap_IMG_2359.ply', this)">IMG_2359 - ReSplat (COLMAP)</button>
+  <button class="btn" onclick="loadScene('IMG_2360/20260420_234238/gaussians.ply', this)">IMG_2360 - HY-World</button>
+  <button class="btn" onclick="loadScene('resplat_IMG_2360.ply', this)">IMG_2360 - ReSplat (MapAny)</button>
+  <button class="btn" onclick="loadScene('IMG_2365/20260420_234336/gaussians.ply', this)">IMG_2365 - HY-World</button>
+  <button class="btn" onclick="loadScene('resplat_IMG_2365.ply', this)">IMG_2365 - ReSplat (MapAny)</button>
+  <button class="btn" onclick="loadScene('colmap_IMG_2365.ply', this)">IMG_2365 - ReSplat (COLMAP)</button>
+  <button class="btn" onclick="loadScene('IMG_2366/20260420_234437/gaussians.ply', this)">IMG_2366 - HY-World</button>
+  <button class="btn" onclick="loadScene('resplat_IMG_2366.ply', this)">IMG_2366 - ReSplat (MapAny)</button>
+  <button class="btn" onclick="loadScene('colmap_IMG_2366.ply', this)">IMG_2366 - ReSplat (COLMAP)</button>
+  <button class="btn" onclick="loadScene('photos_pot_8v.ply', this)">photos_pot - ReSplat (8v)</button>
+  <button class="btn" onclick="loadScene('photo_garden_colmap_8v.ply', this)">photo_garden - COLMAP (8v)</button>
+  <button class="btn" onclick="loadScene('scene_1_stylized_8v.ply', this)">scene_1 - Stylized (8v)</button>
+  <button class="btn" onclick="loadScene('scene_2_stylized_8v.ply', this)">scene_2 - Stylized (8v)</button>
+  <button class="btn" onclick="loadScene('scene_3_stylized_16v.ply', this)">scene_3 - Stylized (16v)</button>
+  <button class="btn" onclick="loadScene('scene_3_original_16v.ply', this)">scene_3 - Original (16v)</button>
+  <button class="btn" onclick="loadScene('scene_3_shinkai_16v.ply', this)">scene_3 - Shinkai (16v)</button>
+  <button class="btn" onclick="loadScene('scene_1_da2_8v.ply', this)">scene_1 - DA2 (8v)</button>
+  <button class="btn" onclick="loadScene('scene_1_da3_8v.ply', this)">scene_1 - DA3 (8v)</button>
+  <button class="btn" onclick="loadScene('scene_2_da2_8v.ply', this)">scene_2 - DA2 (8v)</button>
+  <button class="btn" onclick="loadScene('scene_2_da3_8v.ply', this)">scene_2 - DA3 (8v)</button>
+  <button class="btn" onclick="loadScene('scene_3_da2_16v.ply', this)">scene_3 - DA2 (16v)</button>
+  <button class="btn" onclick="loadScene('scene_3_da3_16v.ply', this)">scene_3 - DA3 (16v)</button>
+
+  <div class="section">
+    <div class="section-title">Avatar</div>
+    <label style="display:flex;align-items:center;gap:6px;margin-bottom:6px;cursor:pointer">
+      <input type="checkbox" id="avatarEnabled" checked onchange="setAvatarEnabled(this.checked)">
+      Show Character
+    </label>
+    <select id="avatarSelect" onchange="switchAvatar(this.value)">
+      <optgroup label="── Characters ──">
+        <option value="character-a.glb">Character A</option>
+        <option value="character-b.glb">Character B</option>
+        <option value="character-c.glb">Character C</option>
+        <option value="character-d.glb">Character D</option>
+        <option value="character-e.glb">Character E</option>
+        <option value="character-f.glb">Character F</option>
+        <option value="character-g.glb">Character G</option>
+        <option value="character-h.glb">Character H</option>
+        <option value="character-i.glb">Character I</option>
+        <option value="character-j.glb">Character J</option>
+        <option value="character-k.glb">Character K</option>
+        <option value="character-l.glb">Character L</option>
+        <option value="character-m.glb">Character M</option>
+        <option value="character-n.glb">Character N</option>
+        <option value="character-o.glb">Character O</option>
+        <option value="character-p.glb">Character P</option>
+        <option value="character-q.glb">Character Q</option>
+        <option value="character-r.glb">Character R</option>
+      </optgroup>
+      <optgroup label="── Animals ──">
+        <option value="animal-cat.glb">Cat</option>
+        <option value="animal-dog.glb">Dog</option>
+        <option value="animal-fox.glb">Fox</option>
+        <option value="animal-bunny.glb">Bunny</option>
+        <option value="animal-panda.glb">Panda</option>
+        <option value="animal-tiger.glb">Tiger</option>
+        <option value="animal-lion.glb">Lion</option>
+        <option value="animal-penguin.glb">Penguin</option>
+        <option value="animal-elephant.glb">Elephant</option>
+        <option value="animal-beaver.glb">Beaver</option>
+        <option value="animal-pig.glb">Pig</option>
+        <option value="animal-polar.glb">Polar Bear</option>
+        <option value="Beagle.glb">Beagle</option>
+      </optgroup>
+    </select>
+    <div class="slider-row">
+      <label>Scale</label>
+      <input type="range" id="avatarScale" min="0.01" max="2" step="0.01" value="0.4">
+      <span class="val" id="avatarScaleVal">0.40</span>
+    </div>
+    <div class="slider-row">
+      <label>Speed</label>
+      <input type="range" id="avatarSpeed" min="0.1" max="3" step="0.1" value="0.5">
+      <span class="val" id="avatarSpeedVal">0.5</span>
+    </div>
+    <div class="slider-row">
+      <label>Height</label>
+      <input type="range" id="avatarHeight" min="-2" max="2" step="0.005" value="0">
+      <span class="val" id="avatarHeightVal">0.00</span>
+    </div>
+    <button class="btn btn-ground" onclick="pinGround()">📌 Set Ground Here</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Camera</div>
+    <button class="btn" id="camToggle" onclick="toggleCamera()">Switch to Free Camera</button>
+  </div>
+</div>
+
+<div id="hud">
+  WASD: move | QE: rotate | Space: run<br>
+  Mouse: orbit (free cam) | Scroll: zoom
+</div>
+
+<div id="loading">Loading...</div>
+
+<canvas id="canvas"></canvas>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.180.0/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+    "@sparkjsdev/spark": "https://sparkjs.dev/releases/spark/2.0.0/spark.module.js",
+    "@dimforge/rapier3d-compat": "https://cdn.skypack.dev/@dimforge/rapier3d-compat"
+  }
+}
+</script>
+<script type="module">
+  import * as THREE from "three";
+  import { SplatMesh, SparkRenderer } from "@sparkjsdev/spark";
+  import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+  import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+  import RAPIER from "@dimforge/rapier3d-compat";
+
+  // ── Scene ──
+  const canvas = document.getElementById("canvas");
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.01, 1000);
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(devicePixelRatio);
+
+  const spark = new SparkRenderer({ renderer });
+  scene.add(spark);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+  dirLight.position.set(2, 5, 3);
+  scene.add(dirLight);
+
+  const orbitControls = new OrbitControls(camera, canvas);
+  orbitControls.enableDamping = true;
+  orbitControls.dampingFactor = 0.1;
+  orbitControls.enabled = false;
+
+  // ── State ──
+  let currentSplat = null;
+  let avatarRoot = null;
+  let mixer = null;
+  let animations = {};
+  let currentAction = null;
+  let followCamera = true;
+
+  const keys = {};
+  let avatarScale = 0.4;
+  let avatarSpeed = 0.5;
+  let avatarHeightOffset = 0;
+
+  const cameraOffset = new THREE.Vector3(0, 0.4, 1.0);
+  const cameraLookOffset = new THREE.Vector3(0, 0.3, 0);
+
+  // ── Physics (Rapier3D) ──
+  let physics = null;
+  let physicsVelY = 0;
+  const CAPSULE_HALF = 0.25;
+  const CAPSULE_RADIUS = 0.2;
+  const CAPSULE_FOOT = CAPSULE_HALF + CAPSULE_RADIUS; // 0.45 — offset from body center to feet
+
+  async function initPhysics() {
+    try {
+      await RAPIER.init();
+      const world = new RAPIER.World({ x: 0, y: -20, z: 0 });
+
+      const groundRb = world.createRigidBody(
+        RAPIER.RigidBodyDesc.fixed().setTranslation(0, avatarHeightOffset, 0)
+      );
+      world.createCollider(RAPIER.ColliderDesc.cuboid(500, 0.05, 500), groundRb);
+
+      const charRb = world.createRigidBody(
+        RAPIER.RigidBodyDesc.kinematicPositionBased()
+          .setTranslation(0, avatarHeightOffset + CAPSULE_FOOT, 0)
+      );
+      const charCollider = world.createCollider(
+        RAPIER.ColliderDesc.capsule(CAPSULE_HALF, CAPSULE_RADIUS), charRb
+      );
+
+      const controller = world.createCharacterController(0.01);
+      controller.enableAutostep(0.3, 0.1, true);
+      controller.enableSnapToGround(0.2);
+
+      physics = { world, groundRb, charRb, charCollider, controller };
+    } catch (e) {
+      console.warn("Rapier physics unavailable, using fallback movement:", e);
+    }
+  }
+
+  initPhysics();
+
+  // ── Load avatar ──
+  const gltfLoader = new GLTFLoader();
+
+  function loadAvatar(url) {
+    return new Promise((resolve) => {
+      gltfLoader.load(url, (gltf) => {
+        // Remove old avatar
+        if (avatarRoot) {
+          scene.remove(avatarRoot);
+          if (mixer) { mixer.stopAllAction(); mixer = null; }
+          animations = {};
+          currentAction = null;
+        }
+
+        avatarRoot = new THREE.Group();
+        avatarRoot.add(gltf.scene);
+        avatarRoot.scale.setScalar(avatarScale);
+        avatarRoot.position.set(0, avatarHeightOffset, 0);
+        scene.add(avatarRoot);
+
+        // Setup AnimationMixer
+        mixer = new THREE.AnimationMixer(gltf.scene);
+        gltf.animations.forEach((clip) => {
+          animations[clip.name.toLowerCase()] = mixer.clipAction(clip);
+        });
+
+        // Start idle
+        switchAnimation("idle");
+        resolve();
+      }, undefined, (err) => { console.error(err); resolve(); });
+    });
+  }
+
+  // Load default avatar (only if checkbox is checked)
+  let avatarReady = document.getElementById("avatarEnabled").checked
+    ? loadAvatar("character-a.glb")
+    : Promise.resolve();
+
+  // Switch avatar from dropdown
+  window.switchAvatar = function(url) {
+    const enabled = document.getElementById("avatarEnabled").checked;
+    if (enabled) avatarReady = loadAvatar(url);
+  };
+
+  // Show/hide character
+  window.setAvatarEnabled = function(enabled) {
+    if (!enabled) {
+      if (avatarRoot) {
+        scene.remove(avatarRoot);
+        avatarRoot = null;
+      }
+    } else {
+      const url = document.getElementById("avatarSelect").value;
+      avatarReady = loadAvatar(url);
+    }
+  };
+
+  // ── Animation switching ──
+  function switchAnimation(name) {
+    const action = animations[name];
+    if (!action || action === currentAction) return;
+    if (currentAction) currentAction.fadeOut(0.2);
+    action.reset().fadeIn(0.2).play();
+    currentAction = action;
+  }
+
+  // ── Load splat scene ──
+  window.loadScene = async function(url, btnEl) {
+    document.getElementById("loading").classList.remove("hidden");
+    document.querySelectorAll("#controls > .btn").forEach(b => b.classList.remove("active"));
+    if (btnEl) btnEl.classList.add("active");
+
+    if (currentSplat) {
+      scene.remove(currentSplat);
+      currentSplat = null;
+    }
+
+    await avatarReady;
+
+    currentSplat = new SplatMesh({ url });
+    currentSplat.quaternion.set(1, 0, 0, 0);
+    scene.add(currentSplat);
+
+    // Auto-center + auto-detect ground (after splat initializes)
+    setTimeout(() => {
+      try {
+        const box = new THREE.Box3().setFromObject(currentSplat);
+        if (isFinite(box.min.x)) {
+          // Center horizontally
+          const cx = (box.min.x + box.max.x) * 0.5;
+          const cz = (box.min.z + box.max.z) * 0.5;
+          currentSplat.position.x -= cx;
+          currentSplat.position.z -= cz;
+        }
+        if (isFinite(box.min.y)) {
+          const groundY = box.min.y + (box.max.y - box.min.y) * 0.05;
+          setAvatarHeight(groundY);
+        }
+      } catch(e) {}
+    }, 800);
+
+    // Reset avatar
+    if (avatarRoot) {
+      avatarRoot.position.set(0, avatarHeightOffset, 0);
+      avatarRoot.rotation.set(0, 0, 0);
+    }
+    if (physics) {
+      physics.charRb.setTranslation({ x: 0, y: avatarHeightOffset + CAPSULE_FOOT, z: 0 }, true);
+      physicsVelY = 0;
+    }
+
+    camera.position.set(0, 0.6, 1.5);
+    camera.lookAt(0, 0.3, 0);
+    orbitControls.target.set(0, 0.3, 0);
+
+    document.getElementById("loading").classList.add("hidden");
+  };
+
+  // ── Ground helpers ──
+  function setAvatarHeight(y) {
+    avatarHeightOffset = y;
+    const s = document.getElementById("avatarHeight");
+    s.value = Math.max(+s.min, Math.min(+s.max, y));
+    document.getElementById("avatarHeightVal").textContent = y.toFixed(2);
+    if (physics) {
+      physics.groundRb.setTranslation({ x: 0, y, z: 0 }, true);
+      const p = physics.charRb.translation();
+      physics.charRb.setTranslation({ x: p.x, y: y + CAPSULE_FOOT, z: p.z }, true);
+      physicsVelY = 0;
+      if (avatarRoot) avatarRoot.position.y = y;
+    } else {
+      if (avatarRoot) avatarRoot.position.y = y;
+    }
+  }
+
+  window.pinGround = function() {
+    if (avatarRoot) setAvatarHeight(avatarRoot.position.y);
+  };
+
+  // ── Camera toggle ──
+  window.toggleCamera = function() {
+    followCamera = !followCamera;
+    orbitControls.enabled = !followCamera;
+    document.getElementById("camToggle").textContent =
+      followCamera ? "Switch to Free Camera" : "Switch to Follow Camera";
+    if (!followCamera && avatarRoot) orbitControls.target.copy(avatarRoot.position);
+  };
+
+  // ── Input ──
+  window.addEventListener("keydown", (e) => { keys[e.key.toLowerCase()] = true; });
+  window.addEventListener("keyup", (e) => { keys[e.key.toLowerCase()] = false; });
+
+  // ── Sliders ──
+  document.getElementById("avatarScale").addEventListener("input", (e) => {
+    avatarScale = parseFloat(e.target.value);
+    document.getElementById("avatarScaleVal").textContent = avatarScale.toFixed(2);
+    if (avatarRoot) avatarRoot.scale.setScalar(avatarScale);
+  });
+  document.getElementById("avatarSpeed").addEventListener("input", (e) => {
+    avatarSpeed = parseFloat(e.target.value);
+    document.getElementById("avatarSpeedVal").textContent = avatarSpeed.toFixed(1);
+  });
+  document.getElementById("avatarHeight").addEventListener("input", (e) => {
+    avatarHeightOffset = parseFloat(e.target.value);
+    document.getElementById("avatarHeightVal").textContent = avatarHeightOffset.toFixed(2);
+    if (avatarRoot) avatarRoot.position.y = avatarHeightOffset;
+  });
+
+  // ── Resize ──
+  window.addEventListener("resize", () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  // ── Main loop ──
+  const clock = new THREE.Clock();
+
+  renderer.setAnimationLoop(() => {
+    const delta = clock.getDelta();
+
+    if (mixer) mixer.update(delta);
+
+    if (avatarRoot) {
+      const running = keys[" "];
+      const speed = avatarSpeed * (running ? 2.5 : 1.0);
+      const forwarding = keys["w"] || keys["s"];
+
+      if (keys["a"]) avatarRoot.rotation.y += 2.0 * delta;
+      if (keys["d"]) avatarRoot.rotation.y -= 2.0 * delta;
+
+      const moveDir = new THREE.Vector3(0, 0, keys["w"] ? -1 : keys["s"] ? 1 : 0);
+      if (moveDir.z !== 0) moveDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), avatarRoot.rotation.y);
+
+      if (physics) {
+        physicsVelY -= 20 * delta;
+        const desired = {
+          x: moveDir.x * speed * delta,
+          y: physicsVelY * delta,
+          z: moveDir.z * speed * delta,
+        };
+        physics.controller.computeColliderMovement(physics.charCollider, desired);
+        if (physics.controller.computedGrounded()) physicsVelY = 0;
+        const mv = physics.controller.computedMovement();
+        const p = physics.charRb.translation();
+        physics.charRb.setNextKinematicTranslation({ x: p.x + mv.x, y: p.y + mv.y, z: p.z + mv.z });
+        physics.world.step();
+        const np = physics.charRb.translation();
+        avatarRoot.position.set(np.x, np.y - CAPSULE_FOOT, np.z);
+      } else {
+        if (forwarding) {
+          avatarRoot.position.addScaledVector(moveDir, speed * delta);
+          avatarRoot.position.y = avatarHeightOffset;
+        }
+      }
+
+      if (forwarding) {
+        switchAnimation(running ? (animations["sprint"] ? "sprint" : "run") : "walk");
+      } else if (keys["a"] || keys["d"]) {
+        switchAnimation("walk");
+      } else {
+        switchAnimation("idle");
+      }
+
+      if (followCamera) {
+        const offset = cameraOffset.clone().applyAxisAngle(new THREE.Vector3(0,1,0), avatarRoot.rotation.y);
+        camera.position.lerp(avatarRoot.position.clone().add(offset), 0.05);
+        camera.lookAt(avatarRoot.position.clone().add(cameraLookOffset));
+      }
+    }
+
+    if (!followCamera) orbitControls.update();
+    renderer.render(scene, camera);
+  });
+
+  // Auto-load first scene
+  window.loadScene("scene_2323/20260420_015258/gaussians.ply", document.querySelector("#controls > .btn"));
+</script>
+</body>
+</html>

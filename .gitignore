@@ -1,0 +1,5 @@
+*.ply
+*.vrm
+IMG_2*/
+scene_2*/
+*.tar.gz

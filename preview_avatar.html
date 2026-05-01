@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Avatar Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    body { background: #2b2928; color: #fff; font-family: system-ui; display: flex; flex-direction: column; align-items: center; }
+    h1 { margin: 20px 0 10px; font-size: 18px; color: #7ec8e3; }
+    .container { display: flex; gap: 20px; padding: 20px; flex-wrap: wrap; justify-content: center; }
+    .card { background: #1a1a2e; border-radius: 12px; padding: 16px; text-align: center; }
+    .card h3 { margin-bottom: 10px; font-size: 14px; }
+    canvas { border-radius: 8px; background: #333; }
+  </style>
+</head>
+<body>
+  <h1>Pick your anime avatar</h1>
+  <div class="container">
+    <div class="card">
+      <h3>fem_vroid (VRoid anime girl)</h3>
+      <canvas id="c1" width="400" height="500"></canvas>
+    </div>
+    <div class="card">
+      <h3>Seed-san (pixiv official)</h3>
+      <canvas id="c2" width="400" height="500"></canvas>
+    </div>
+  </div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.180.0/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+    "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3/lib/three-vrm.module.min.js"
+  }
+}
+</script>
+<script type="module">
+  import * as THREE from "three";
+  import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+  import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+  import { VRMLoaderPlugin } from "@pixiv/three-vrm";
+
+  function createViewer(canvasId, modelUrl) {
+    const canvas = document.getElementById(canvasId);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(30, 400/500, 0.1, 100);
+    camera.position.set(0, 1.0, 3.0);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setSize(400, 500);
+    renderer.setClearColor(0x333333);
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.target.set(0, 1.0, 0);
+    controls.enableDamping = true;
+    controls.update();
+
+    // Lights
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    const dir = new THREE.DirectionalLight(0xffffff, 1.0);
+    dir.position.set(2, 3, 2);
+    scene.add(dir);
+
+    // Load VRM
+    const loader = new GLTFLoader();
+    loader.register((parser) => new VRMLoaderPlugin(parser));
+
+    loader.load(modelUrl, (gltf) => {
+      const vrm = gltf.userData.vrm;
+      scene.add(vrm.scene);
+      vrm.scene.rotation.y = Math.PI; // face camera
+    });
+
+    renderer.setAnimationLoop(() => {
+      controls.update();
+      renderer.render(scene, camera);
+    });
+  }
+
+  createViewer("c1", "fem_vroid.vrm");
+  createViewer("c2", "seed-san.vrm");
+</script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3DGS Viewer - Spark</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; color: #fff; }
+
+    .spark-canvas {
+      display: block; position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+    }
+
+    #controls {
+      position: fixed; top: 16px; left: 16px; z-index: 100;
+      background: rgba(0,0,0,0.75); padding: 16px; border-radius: 12px;
+      backdrop-filter: blur(8px); max-width: 300px;
+    }
+    #controls h2 { font-size: 14px; margin: 0 0 12px 0; color: #7ec8e3; }
+    .btn {
+      display: block; width: 100%; padding: 10px 14px; margin: 6px 0;
+      background: #16213e; border: 1px solid #0f3460; border-radius: 8px;
+      color: #eee; font-size: 13px; cursor: pointer; text-align: left;
+    }
+    .btn:hover { background: #0f3460; }
+    .btn.active { background: #533483; border-color: #7ec8e3; }
+    .btn-upload { background: #1a5276; border-color: #2980b9; }
+    .btn-upload:hover { background: #2980b9; }
+    hr { border-color: #333; margin: 10px 0; }
+
+    #info {
+      position: fixed; bottom: 16px; left: 16px; z-index: 100;
+      background: rgba(0,0,0,0.6); padding: 10px 14px; border-radius: 8px;
+      font-size: 12px; color: #aaa;
+    }
+    #loading {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 200; font-size: 18px; color: #7ec8e3; display: none;
+    }
+    #loading.show { display: block; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<div id="controls">
+  <h2>3DGS Viewer</h2>
+  <button class="btn" onclick="loadFromURL('IMG_2336/20260420_015129/gaussians.ply', this)">IMG_2336 (video)</button>
+  <button class="btn" onclick="loadFromURL('IMG_2322/20260420_034507/gaussians.ply', this)">IMG_2322 (video)</button>
+  <button class="btn" onclick="loadFromURL('scene_2323/20260420_015258/gaussians.ply', this)">scene_2323 (photos)</button>
+  <hr>
+  <label class="btn btn-upload">
+    Load local .ply file
+    <input type="file" accept=".ply,.splat,.spz,.ksplat" id="file-input" class="hidden">
+  </label>
+</div>
+
+<div id="info">
+  Left-drag: orbit | Right-drag: pan | Scroll: zoom
+</div>
+
+<div id="loading">Loading...</div>
+
+<canvas class="spark-canvas"></canvas>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.180.0/three.module.js",
+    "@sparkjsdev/spark": "https://sparkjs.dev/releases/spark/2.0.0/spark.module.js"
+  }
+}
+</script>
+<script type="module">
+  import * as THREE from "three";
+  import { SplatMesh, SparkRenderer, SparkControls } from "@sparkjsdev/spark";
+
+  const canvas = document.querySelector(".spark-canvas");
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
+  camera.position.set(0, 0, 1);
+
+  const renderer = new THREE.WebGLRenderer({ canvas });
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+
+  // SparkRenderer is required for splat rendering
+  const spark = new SparkRenderer({ renderer });
+  scene.add(spark);
+
+  // SparkControls for orbit/pan/zoom
+  const controls = new SparkControls({ canvas });
+
+  function resize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    const c = renderer.domElement;
+    if (c.width !== w || c.height !== h) {
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+  }
+  window.addEventListener("resize", () => setTimeout(resize, 100));
+
+  let loadedSplat = null;
+
+  function clearSplat() {
+    if (loadedSplat) {
+      scene.remove(loadedSplat);
+      loadedSplat = null;
+    }
+  }
+
+  // Load from URL (for the preset buttons)
+  window.loadFromURL = function(url, btnEl) {
+    document.getElementById("loading").classList.add("show");
+    document.querySelectorAll(".btn").forEach(b => b.classList.remove("active"));
+    if (btnEl) btnEl.classList.add("active");
+
+    clearSplat();
+    loadedSplat = new SplatMesh({ url });
+    loadedSplat.quaternion.set(1, 0, 0, 0);
+    scene.add(loadedSplat);
+    document.getElementById("loading").classList.remove("show");
+  };
+
+  // Load from local file upload
+  document.getElementById("file-input").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    document.getElementById("loading").classList.add("show");
+    document.querySelectorAll(".btn").forEach(b => b.classList.remove("active"));
+
+    const fileBytes = new Uint8Array(await file.arrayBuffer());
+    const fileName = file.name;
+
+    clearSplat();
+    loadedSplat = new SplatMesh({ fileBytes, fileName });
+    loadedSplat.quaternion.set(1, 0, 0, 0);
+    scene.add(loadedSplat);
+    document.getElementById("loading").classList.remove("show");
+  });
+
+  // Also support URL query param: ?url=path/to/file.ply
+  const params = new URLSearchParams(window.location.search);
+  const urlParam = params.get("url");
+  if (urlParam) {
+    window.loadFromURL(urlParam, null);
+  }
+
+  renderer.setAnimationLoop(function animate() {
+    resize();
+    controls.update(camera);
+    renderer.render(scene, camera);
+  });
+</script>
+</body>
+</html>
