@@ -52,36 +52,10 @@
 
 <div id="controls">
   <h2>3DGS Explorer</h2>
-  <button class="btn" onclick="loadScene('scene_2323/20260420_015258/gaussians.ply', this)">scene_2323 - HY-World</button>
-  <button class="btn" onclick="loadScene('resplat_scene_2323.ply', this)">scene_2323 - ReSplat (GCP)</button>
-  <button class="btn" onclick="loadScene('resplat_scene_2323_local.ply', this)">scene_2323 - ReSplat (local)</button>
-  <button class="btn" onclick="loadScene('resplat_scene_2330.ply', this)">scene_2330 - ReSplat (local)</button>
-  <button class="btn" onclick="loadScene('IMG_2336/20260420_015129/gaussians.ply', this)">IMG_2336 - HY-World</button>
-  <button class="btn" onclick="loadScene('IMG_2322/20260420_034507/gaussians.ply', this)">IMG_2322 - HY-World</button>
-  <button class="btn" onclick="loadScene('IMG_2359/20260420_234136/gaussians.ply', this)">IMG_2359 - HY-World</button>
-  <button class="btn" onclick="loadScene('resplat_IMG_2359.ply', this)">IMG_2359 - ReSplat (MapAny)</button>
-  <button class="btn" onclick="loadScene('colmap_IMG_2359.ply', this)">IMG_2359 - ReSplat (COLMAP)</button>
-  <button class="btn" onclick="loadScene('IMG_2360/20260420_234238/gaussians.ply', this)">IMG_2360 - HY-World</button>
-  <button class="btn" onclick="loadScene('resplat_IMG_2360.ply', this)">IMG_2360 - ReSplat (MapAny)</button>
-  <button class="btn" onclick="loadScene('IMG_2365/20260420_234336/gaussians.ply', this)">IMG_2365 - HY-World</button>
-  <button class="btn" onclick="loadScene('resplat_IMG_2365.ply', this)">IMG_2365 - ReSplat (MapAny)</button>
-  <button class="btn" onclick="loadScene('colmap_IMG_2365.ply', this)">IMG_2365 - ReSplat (COLMAP)</button>
-  <button class="btn" onclick="loadScene('IMG_2366/20260420_234437/gaussians.ply', this)">IMG_2366 - HY-World</button>
-  <button class="btn" onclick="loadScene('resplat_IMG_2366.ply', this)">IMG_2366 - ReSplat (MapAny)</button>
-  <button class="btn" onclick="loadScene('colmap_IMG_2366.ply', this)">IMG_2366 - ReSplat (COLMAP)</button>
-  <button class="btn" onclick="loadScene('photos_pot_8v.ply', this)">photos_pot - ReSplat (8v)</button>
-  <button class="btn" onclick="loadScene('photo_garden_colmap_8v.ply', this)">photo_garden - COLMAP (8v)</button>
-  <button class="btn" onclick="loadScene('scene_1_stylized_8v.ply', this)">scene_1 - Stylized (8v)</button>
-  <button class="btn" onclick="loadScene('scene_2_stylized_8v.ply', this)">scene_2 - Stylized (8v)</button>
-  <button class="btn" onclick="loadScene('scene_3_stylized_16v.ply', this)">scene_3 - Stylized (16v)</button>
-  <button class="btn" onclick="loadScene('scene_3_original_16v.ply', this)">scene_3 - Original (16v)</button>
-  <button class="btn" onclick="loadScene('scene_3_shinkai_16v.ply', this)">scene_3 - Shinkai (16v)</button>
-  <button class="btn" onclick="loadScene('scene_1_da2_8v.ply', this)">scene_1 - DA2 (8v)</button>
-  <button class="btn" onclick="loadScene('scene_1_da3_8v.ply', this)">scene_1 - DA3 (8v)</button>
-  <button class="btn" onclick="loadScene('scene_2_da2_8v.ply', this)">scene_2 - DA2 (8v)</button>
-  <button class="btn" onclick="loadScene('scene_2_da3_8v.ply', this)">scene_2 - DA3 (8v)</button>
-  <button class="btn" onclick="loadScene('scene_3_da2_16v.ply', this)">scene_3 - DA2 (16v)</button>
-  <button class="btn" onclick="loadScene('scene_3_da3_16v.ply', this)">scene_3 - DA3 (16v)</button>
+  <div class="section-title" style="margin-bottom:6px">Scene</div>
+  <button class="btn" onclick="document.getElementById('plyInput').click()">📂 Load PLY File</button>
+  <input type="file" id="plyInput" accept=".ply" style="display:none" onchange="loadFromFile(this)">
+  <div id="sceneLabel" style="font-size:11px;color:#888;margin:4px 0;min-height:16px;word-break:break-all"></div>
 
   <div class="section">
     <div class="section-title">Avatar</div>
@@ -314,11 +288,19 @@
     currentAction = action;
   }
 
+  // ── Load splat from file picker ──
+  window.loadFromFile = async function(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    document.getElementById("sceneLabel").textContent = file.name;
+    await loadScene(url);
+    input.value = "";
+  };
+
   // ── Load splat scene ──
-  window.loadScene = async function(url, btnEl) {
+  window.loadScene = async function(url) {
     document.getElementById("loading").classList.remove("hidden");
-    document.querySelectorAll("#controls > .btn").forEach(b => b.classList.remove("active"));
-    if (btnEl) btnEl.classList.add("active");
 
     if (currentSplat) {
       scene.remove(currentSplat);
@@ -483,8 +465,6 @@
     renderer.render(scene, camera);
   });
 
-  // Auto-load first scene
-  window.loadScene("scene_2323/20260420_015258/gaussians.ply", document.querySelector("#controls > .btn"));
 </script>
 </body>
 </html>
