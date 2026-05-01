@@ -86,7 +86,7 @@
   <div class="section">
     <div class="section-title">Avatar</div>
     <label style="display:flex;align-items:center;gap:6px;margin-bottom:6px;cursor:pointer">
-      <input type="checkbox" id="avatarEnabled" checked onchange="setAvatarEnabled(this.checked)">
+      <input type="checkbox" id="avatarEnabled" onchange="setAvatarEnabled(this.checked)">
       Show Character
     </label>
     <select id="avatarSelect" onchange="switchAvatar(this.value)">
@@ -283,10 +283,8 @@
     });
   }
 
-  // Load default avatar (only if checkbox is checked)
-  let avatarReady = document.getElementById("avatarEnabled").checked
-    ? loadAvatar("character-a.glb")
-    : Promise.resolve();
+  // Avatar disabled by default
+  let avatarReady = Promise.resolve();
 
   // Switch avatar from dropdown
   window.switchAvatar = function(url) {
